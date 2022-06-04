@@ -8,6 +8,13 @@ export default {
       if (!currentUser) {
         return;
       }
+      api.addNavigationBarItem({
+        name: "following",
+        href: "/following",
+        customFilter(category, args /*, router*/) {
+          return !category && !args.tagId;
+        },
+      });
       api.replaceIcon(
         "notification.following",
         "discourse-follow-new-follower"

@@ -6,6 +6,15 @@
 
 zh_CN:
   js:
+    filters:
+      following:
+        title: "关注"
+        help: "topics with posts from users you're following"
+    topics:
+      none:
+        following: "无."
+      bottom:
+        following: "无."
     notifications:
       following: "<span>%{username}</span> %{description}"
       following_description: "已开始关注您。"

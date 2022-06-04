@@ -28,6 +28,9 @@ Discourse::Application.routes.append do
   end
 end
 
+Discourse.top_menu_items.push(:following)
+Discourse.filters.push(:following)
+
 after_initialize do
   Notification.types[:following] = 800
   Notification.types[:following_created_topic] = 801
@@ -46,6 +49,38 @@ after_initialize do
 
   reloadable_patch do |plugin|
     User.class_eval { prepend Follow::UserExtension }
+  end
+
+  require_dependency 'topic_query'
+  class ::TopicQuery
+    def list_following
+      create_list(:following) do |topics|
+        topics.joins(:posts)
+              .where("posts.user_id in (?)", @user.following)
+      end
+    end
+  end
+
+  add_to_serializer(:current_user, :total_following) { object.following.length }
+
+  add_to_class(:topic_query, :list_following) do
+    create_list(:following) do |topics|
+      allowed_post_types = [Post.types[:regular]]
+      allowed_post_types << Post.types[:whisper] if @user.staff?
+      topics.joins(<<~SQL)
+        INNER JOIN (
+          SELECT DISTINCT topic_id
+          FROM posts
+          INNER JOIN user_followers
+          ON user_followers.user_id = posts.user_id
+          WHERE follower_id = #{@user.id}
+          AND posts.post_type IN (#{allowed_post_types.join(",")})
+          AND posts.deleted_at IS NULL
+          AND posts.deleted_by_id IS NULL
+        ) topics_by_followed_users
+        ON topics_by_followed_users.topic_id = topics.id
+      SQL
+    end
   end
 
   add_to_serializer(:user, :can_see_following) do
